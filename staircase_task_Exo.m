@@ -33,15 +33,21 @@ function UpDn = staircase_task_Exo
 %
 % ==== TRIGGERS ====
 %
-% Trial start (fixation): lag (1,2,3,4)
+% -- Targets Present --
+% Trial start (fixation): 1
 % Entrainers: 61-68
-% Target: 20+lag (21,22,23,24)
-% Mask: 90+lag (91,92,93,94)
-% Response screen: 40+lag (41,42,43,44)  
-% Detected: 150+lag (151,152,153,154)
-% Undetected: 160+lag (161,162,163,164)
-% Null response: 190+lag (191,192,193,194)
-% 
+% Cue: 
+%     left:  2
+%     right: 3
+%     both:  9
+% Target:
+%     left:  20
+%     right: 30
+% Mask: 90
+% Response screen Y/N: 25  
+%   Response Yes: 180 
+%   Response No: 185 
+%   Response invalid: 150
 % 
 %
 % @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -56,8 +62,10 @@ prepareEnvironment;
 % -------------------------------------------------------------------------    
 % Input participant's number, name, date of testing, preferences
 part_num = input('Participant Number:','s');
-Filename = ['M:\Experiments\OrientWheel_Exo\Orient_Data\Staircasing\' part_num '_staircase.mat'];
-% -------------------------------------------------------------------------    
+Filename = ['M:\Experiments\OrientWheel_Exo\Orient_Data\Staircasing\' part_num '_stair_exo.mat'];
+
+% -------------------------------------------------------------------------
+% /////////////////////////////////////////////////////////////////////////
 
 window = openWindow(); %get info for psychtoolbox
 prefs = getPreferences(); %get task variable info
@@ -81,17 +89,35 @@ prefs.mask_gray = 0; %default is black
 prefs.targ_gray = 0; %default is black
 
 % -------------------------------------------------------------------------
-% Center the target oval on the centre of the screen (for drawing
-% target stimuli)
-centeredRectresp = CenterRectOnPointd(prefs.baseCircleresp,window.centerX,window.centerY); 
+% Center the target oval & cues on the centre of the screen
+centeredRectresp = CenterRectOnPointd(prefs.baseCircleresp,window.centerX,window.centerY);
+centeredRectrespR = CenterRectOnPointd(prefs.baseCircleresp,window.centerXR,window.centerY); 
+centeredRectrespL = CenterRectOnPointd(prefs.baseCircleresp,window.centerXL,window.centerY);
 
+% -------------------------------------------------------------------------
 % Create offscreen window with the texture of the mask
 maskwin = createMasktex(window,prefs); 
 
-% Location of color wheel on screen
-% orientWheelLocations = orientwheelLocations(window,prefs);
+% ------------------------------------------------------------------------ 
+% Create offscreen window with the cues
+CueL = createCueL(window,prefs); %create offscreen window with cue
+CueR = createCueR(window,prefs); %create offscreen window with cue
   
-% ------------------------------------------------------------------------- 
+% -------------------------------------------------------------------------  
+% Put up instructions for staircasing task and wait for keypress.
+instruct_staircase(window,prefs);
+
+% -------------------------------------------------------------------------    
+% Location of orientations on screen
+orientWheelLocations = orientwheelLocations(window,prefs);
+
+% -------------------------------------------------------------------------  
+
+% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+% -------------------------------------------------------------------------
+% +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+%% Set up the random mix of lags and target position and cue for each block
+
 % Set up the random mix of lags for each block
 all_lags = [1:prefs.n_lags];
 if prefs.lags_per_block > 1
@@ -101,13 +127,38 @@ if prefs.lags_per_block > 1
 end
 i_lags = randperm(prefs.lags_per_block * (prefs.n_lags));
 all_lags = all_lags(i_lags);
-% ------------------------------------------------------------------------- 
+clear i_lag
 
 
-% -------------------------------------------------------------------------    
-% Put up instructions for staircasing task and wait for keypress.
-instruct_staircase(window,prefs);
-% -------------------------------------------------------------------------  
+%set up the right/left target location
+position = 1;
+for i_pos = 2:ntotaltrial
+    if i_pos <= round(ntotaltrial/2)
+        position = [position 1]; % 1 is right
+    else
+        position = [position 0]; % 0 is left
+    end
+end
+position = position(randperm(ntotaltrial));
+
+
+%set up the valid/invalid cues (1=informative)
+valid = 1;
+validtrials = ntotaltrial*prefs.p_validity;
+for i_valid = 2:ntotaltrial
+    if i_valid > round(validtrials)
+        valid = [valid 0]; 
+    else
+        valid = [valid 1];
+    end
+end
+clear i_valid
+valid = valid(randperm(ntotaltrial));
+    
+
+% Pre-allocate some variables
+allCoords_targ = cell(1,ntotaltrial);
+trialOrient = cell(1,ntotaltrial);  
 
 
 % -------------------------------------------------------------------------   
@@ -258,7 +309,7 @@ for i_sRun = 1:UpDn.nStairsRun
         pause(window); 
         Screen('FillRect', window.onScreen, window.gray);
         Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
-        Screen('FillRect',window.onScreen, Vpixx2Vamp(lag), prefs.trigger_size);
+        Screen('FillRect',window.onScreen, Vpixx2Vamp(1), prefs.trigger_size);
         t_fixate_onset = Screen('Flip', window.onScreen);
 % =========================================================================         
         %% Interval
@@ -1036,7 +1087,7 @@ prefs.mask_length = 1; %refresh cycles of mask
 % ---------------
 % Fixation ------
 % ---------------
-prefs.fixation_length = 60; %500ms
+prefs.fixation_length = 84; %700ms
 prefs.preblank_length = 24; %200ms
 prefs.fixationSize = 4; %size of dot
 
@@ -1048,10 +1099,23 @@ prefs.fixationSize = 4; %size of dot
 prefs.orientWheelRadius = 35; %size of orientation wheel (not drawn)
 
 
+% ------------
+% Cue --------
+% ------------
+%in refresh cycles; each refresh is 1000msec / 120 Hz = 8.333 msec
+prefs.cue_length = 48; %400 ms
+prefs.cue_size = 20;
+prefs.cue_line = 5; %thickness of arrow line
+prefs.postcue_length = 24; %200 ms
+prefs.p_validity = 1; %proportion of informative cues (all should be informative)
+
+
 % Other Variables
 prefs.trigger_size = [0 0 1 1];
-prefs.p_catchtrials = 0.2; %what proportion of trials will be catch trials
+prefs.p_catchtrials = 0; %what proportion of trials will be catch trials
 prefs.tilesize = 5; % how big the coloured squares are
+
+prefs.timeLimit = 5; %how long wait for yes/no response (s)
 
 
 
@@ -1076,7 +1140,7 @@ prefs.trials_per_block = length(prefs.degslocs)*2;
 
 % Total number of experimental trials (384)
 prefs.nTrials = prefs.nBlocks*prefs.trials_per_block;
-% prefs.nTrials = 12;
+% prefs.nTrials = 12; %for testing
 
 % Random order of orientations on each trial
 prefs.selectorientTrial = randi(length(prefs.degslocs),[(prefs.nTrials+20),1]);

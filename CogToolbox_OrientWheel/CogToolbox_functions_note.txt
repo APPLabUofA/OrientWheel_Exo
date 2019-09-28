@@ -1,0 +1,5 @@
+These functions are orginally from the CogToolbox and have been modified for the OrientationWheel_Exo task.
+
+See websites for toolbox:
+http://www.lrdc.pitt.edu/maplelab/cogtoolbox.html
+https://github.com/sfraundorf/cogtoolbox

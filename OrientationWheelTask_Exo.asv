@@ -68,13 +68,16 @@ prepareEnvironment;
 part_num = input('Participant Number:','s');
 Filename = ['M:\Experiments\OrientWheel_Exo\Orient_Data\' part_num '_Orient_Exo.mat'];
 
-% Do you want to estimate threshold with a staircase procedure? 
+% Do you already have a color value or use default? 
 color_yn = input('Do you want to input the target color? [y or n]:','s');
 if strncmpi(color_yn,'y',1)
     % If not doing staircasing, input target color (0 black to 128 background grey)
     xtarget_gray = input('Target color [0 to 128]:','s');
     xtarget_gray = str2num(xtarget_gray); %convert input to number
 end 
+
+% Is eyetracking going to be used? 
+eyetrack_yn = input('Are you using the eye tracker? [y or n]:','s');
 
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 % /////////////////////////////////////////////////////////////////////////
@@ -85,22 +88,23 @@ prefs = getPreferences(); %get task variable info
 
 % /////////////////////////////////////////////////////////////////////////
 % /////////////////////////////////////////////////////////////////////////
-%% Instructions for experimenter
-% Screen('FillRect',window.onScreen,window.gray);
-% DrawFormattedText(window.onScreen,'Calibrated? Start EEG Recording and Press the SPACE BAR','center','center',[]);
-% Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
-% Screen('Flip',window.onScreen)
-% 
-% KbWait;
-% 
-% Screen('FillRect',window.onScreen,window.gray);
-% Screen('FillRect',window.onScreen,Vpixx2Vamp(199),prefs.trigger_size);
-% Screen('Flip',window.onScreen);
-% % system('C:\Users\user\Downloads\CoreSDK\CoreSDK\samples\Streams\Interaction_Streams_101\bin\Debug\Interaction_Streams_101.exe &');
-% system('M:\Experiments\micb_eyetrack\CoreSDK\CoreSDK\samples\Streams\Interaction_Streams_101\bin\Debug\Interaction_Streams_101.exe &');
-% 
-% 
-% WaitSecs(2);
+%% Instructions for experimenter to start eye tracking
+if strncmpi(eyetrack_yn,'y',1)
+    Screen('FillRect',window.onScreen,window.gray);
+    DrawFormattedText(window.onScreen,'Calibrated? Start EEG Recording and Press the SPACE BAR','center','center',[]);
+    Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
+    Screen('Flip',window.onScreen)
+
+    KbWait;
+
+    Screen('FillRect',window.onScreen,window.gray);
+    Screen('FillRect',window.onScreen,Vpixx2Vamp(199),prefs.trigger_size);
+    Screen('Flip',window.onScreen);
+    % system('C:\Users\user\Downloads\CoreSDK\CoreSDK\samples\Streams\Interaction_Streams_101\bin\Debug\Interaction_Streams_101.exe &');
+    system('M:\Experiments\micb_eyetrack\CoreSDK\CoreSDK\samples\Streams\Interaction_Streams_101\bin\Debug\Interaction_Streams_101.exe &');
+
+    WaitSecs(2);
+end
 
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 % /////////////////////////////////////////////////////////////////////////
@@ -126,12 +130,10 @@ for i = 1:max(prefs.setSizes)
 end
 
 % -------------------------------------------------------------------------
-% Center the target oval on the centre of the screen (for drawing
-% target stimuli)
+% Center the target oval & cues on the centre of the screen
 centeredRectresp = CenterRectOnPointd(prefs.baseCircleresp,window.centerX,window.centerY);
 centeredRectrespR = CenterRectOnPointd(prefs.baseCircleresp,window.centerXR,window.centerY); 
 centeredRectrespL = CenterRectOnPointd(prefs.baseCircleresp,window.centerXL,window.centerY);
-% -------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------
 % Set colors of stimuli
@@ -144,6 +146,7 @@ if strncmpi(color_yn,'y',1)
 else
     prefs.targ_gray = 0; %default is black
 end
+
 % -------------------------------------------------------------------------
 
 % ------------------------------------------------------------------------ 
@@ -1254,15 +1257,15 @@ prefs.timeLimit = 5; %how long wait for yes/no response (s)
 prefs.degslocs = [15:15:360]; 
 
 % Number of blocks
-prefs.nBlocks = 7;
+prefs.nBlocks = 8;
 % prefs.nBlocks = 2;
 
 % Trials per block (multiple of # of target orientations)
 prefs.trials_per_block = length(prefs.degslocs)*2;
 
 % Total number of experimental trials (384)
-% prefs.nTrials = prefs.nBlocks*prefs.trials_per_block;
-prefs.nTrials = 12; %for testing
+prefs.nTrials = prefs.nBlocks*prefs.trials_per_block;
+% prefs.nTrials = 12; %for testing
 
 % Random order of orientations on each trial
 prefs.selectorientTrial = randi(length(prefs.degslocs),[(prefs.nTrials+20),1]);

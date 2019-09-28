@@ -5,7 +5,7 @@
 % -------------------------------------------------------------------------
 % **** See García-Pérez (1998) for more information about staircasing **** 
 % -------------------------------------------------------------------------
-function UpDn = staircase_task60
+function UpDn = staircase_task_Exo
 % This function is meant to be used with OrientationWheelTask_v3
 % There is a lot of code that is not needed for this task. This code
 % orginally comes from tCAS_VisEntrain_Central_v5 and then the task was
@@ -33,15 +33,21 @@ function UpDn = staircase_task60
 %
 % ==== TRIGGERS ====
 %
-% Trial start (fixation): lag (1,2,3,4)
+% -- Targets Present --
+% Trial start (fixation): 1
 % Entrainers: 61-68
-% Target: 20+lag (21,22,23,24)
-% Mask: 90+lag (91,92,93,94)
-% Response screen: 40+lag (41,42,43,44)  
-% Detected: 150+lag (151,152,153,154)
-% Undetected: 160+lag (161,162,163,164)
-% Null response: 190+lag (191,192,193,194)
-% 
+% Cue: 
+%     left:  2
+%     right: 3
+%     both:  9
+% Target:
+%     left:  20
+%     right: 30
+% Mask: 90
+% Response screen Y/N: 25  
+%   Response Yes: 180 
+%   Response No: 185 
+%   Response invalid: 150
 % 
 %
 % @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -56,8 +62,10 @@ prepareEnvironment;
 % -------------------------------------------------------------------------    
 % Input participant's number, name, date of testing, preferences
 part_num = input('Participant Number:','s');
-Filename = ['M:\Experiments\OrientationWheel\Orient_Data\Staircasing\' part_num '_staircase60.mat'];
-% -------------------------------------------------------------------------    
+Filename = ['M:\Experiments\OrientWheel_Exo\Orient_Data\Staircasing\' part_num '_stair_exo.mat'];
+
+% -------------------------------------------------------------------------
+% /////////////////////////////////////////////////////////////////////////
 
 window = openWindow(); %get info for psychtoolbox
 prefs = getPreferences(); %get task variable info
@@ -821,6 +829,9 @@ window.centerX = window.screenX * 0.5; % center of screen in X direction
 window.centerY = window.screenY * 0.5; % center of screen in Y direction
 window.centerXL = floor(mean([0, window.centerX])); % center of left half of screen in X direction
 window.centerXR = floor(mean([window.centerX, window.screenX])); % center of right half of screen in X direction
+% targets need to be closer to the center (~6.3 degrees of arc)
+window.centerXL = floor(mean([window.centerXL, window.centerX])); % center of the center left half of screen in X direction
+window.centerXR = floor(mean([window.centerXR, window.centerX])); % center of the center right half of screen in X direction
 
 % Basic drawing and screen variables.
 window.black      = BlackIndex(window.onScreen); % RGB value = 0
@@ -870,12 +881,103 @@ for ii = 1:length(degslocs)
     % Draw the orientation lines, set it to the center of our screen and
     % set good quality antialiasing
     Screen('DrawLines', maskwin, allCoords, prefs.lineWidthPix, prefs.mask_gray,...
-        [window.centerX window.centerY], 2);
+        [window.centerXR window.centerY], 2);
+    Screen('DrawLines', maskwin, allCoords, prefs.lineWidthPix, prefs.mask_gray,...
+        [window.centerXL window.centerY], 2);
+    
+    clear xCoords yCoords allCoords
+    
 end
+clear yadj xadj yadj2 xadj2
 
 % Draw the circle to the screen
-centeredRect = CenterRectOnPointd([0,0,14,14], window.centerX, window.centerY); 
+centeredRect = CenterRectOnPointd([0,0,14,14], window.centerXR, window.centerY); 
 Screen('FillOval', maskwin, prefs.mask_gray, centeredRect');
+centeredRect = CenterRectOnPointd([0,0,14,14], window.centerXL, window.centerY); 
+Screen('FillOval', maskwin, prefs.mask_gray, centeredRect');
+
+end
+
+
+% -------------------------------------------------------------------------
+% #########################################################################
+% -------------------------------------------------------------------------
+%% *****Set-up off screen window with RIGHT cue*****
+function CueR = createCueR(window,prefs)
+
+% Open a new window off screen
+CueR = Screen('OpenOffscreenwindow', window.onScreen, window.gray); 
+
+% Set up alpha-blending for smooth (anti-aliased) lines in mask window
+Screen('BlendFunction', CueR, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
+
+% Number of sides for our polygon
+numSides = 3;
+
+% Angles at which our polygon vertices endpoints will be. We start at zero
+% and then equally space vertex endpoints around the edge of a circle. The
+% polygon is then defined by sequentially joining these end points.
+anglesDeg = linspace(0, 360, numSides + 1);
+anglesRad = anglesDeg * (pi / 180);
+radius = prefs.cue_size;
+
+% X and Y coordinates of the points defining out polygon, centred on the
+% centre of the screen
+yPosVector = sin(anglesRad) .* radius + window.centerY;
+xPosVector = cos(anglesRad) .* radius + window.centerX;
+
+% Set the color of the triangle
+rectColor = window.black;
+
+% Cue to tell PTB that the polygon is convex (concave polygons require much
+% more processing)
+isConvex = 1;
+
+% Draw the rect to the screen
+Screen('FillPoly', CueR, rectColor, [xPosVector; yPosVector]', isConvex);
+% Screen('DrawDots', CueL, [window.centerX, window.centerY], prefs.fixationSize, 255);
+Screen('DrawLines', CueR, [-47 0 0 0; 0 0 0 0], prefs.cue_line, rectColor, [window.centerX, window.centerY], 0);
+
+end
+
+% -------------------------------------------------------------------------
+% #########################################################################
+% -------------------------------------------------------------------------
+%% *****Set-up off screen window with LEFT cue*****
+function CueL = createCueL(window,prefs)
+
+% Open a new window off screen
+CueL = Screen('OpenOffscreenwindow', window.onScreen, window.gray); 
+
+% Set up alpha-blending for smooth (anti-aliased) lines in mask window
+Screen('BlendFunction', CueL, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
+
+% Number of sides for our polygon
+numSides = 3;
+
+% Angles at which our polygon vertices endpoints will be. We start at zero
+% and then equally space vertex endpoints around the edge of a circle. The
+% polygon is then defined by sequentially joining these end points.
+anglesDeg = linspace(0, 360, numSides + 1);
+anglesRad = anglesDeg * (pi / 180);
+radius = prefs.cue_size;
+
+% X and Y coordinates of the points defining out polygon, centred on the
+% centre of the screen (needed to flip)
+yPosVector = sin(anglesRad) .* radius + window.centerY;
+xPosVector = cos(anglesRad) .* radius + window.centerX;
+yPosVector2 = [yPosVector(2),yPosVector(1),yPosVector(4),yPosVector(3)];
+
+% Set the color of the triangle
+rectColor = window.black;
+
+% Cue to tell PTB that the polygon is convex (concave polygons require much
+% more processing)
+isConvex = 1;
+
+% Draw the rect to the screen
+Screen('FillPoly', CueL, rectColor, [xPosVector; yPosVector2]', isConvex);
+Screen('DrawLines', CueL, [0 57 0 0; 0 0 0 0], prefs.cue_line, rectColor, [window.centerX, window.centerY], 0);
 
 end
 
@@ -954,10 +1056,23 @@ prefs.fixationSize = 4; %size of dot
 prefs.orientWheelRadius = 35; %size of orientation wheel (not drawn)
 
 
+% ------------
+% Cue --------
+% ------------
+%in refresh cycles; each refresh is 1000msec / 120 Hz = 8.333 msec
+prefs.cue_length = 48; %400 ms
+prefs.cue_size = 20;
+prefs.cue_line = 5; %thickness of arrow line
+prefs.postcue_length = 24; %200 ms
+prefs.p_validity = 0.67; %proportion of informative cues (33 non-informative cues)
+
+
 % Other Variables
 prefs.trigger_size = [0 0 1 1];
-prefs.p_catchtrials = 0.2; %what proportion of trials will be catch trials
+prefs.p_catchtrials = 0; %what proportion of trials will be catch trials
 prefs.tilesize = 5; % how big the coloured squares are
+
+prefs.timeLimit = 5; %how long wait for yes/no response (s)
 
 
 
@@ -982,7 +1097,7 @@ prefs.trials_per_block = length(prefs.degslocs)*2;
 
 % Total number of experimental trials (384)
 prefs.nTrials = prefs.nBlocks*prefs.trials_per_block;
-% prefs.nTrials = 12;
+% prefs.nTrials = 12; %for testing
 
 % Random order of orientations on each trial
 prefs.selectorientTrial = randi(length(prefs.degslocs),[(prefs.nTrials+20),1]);

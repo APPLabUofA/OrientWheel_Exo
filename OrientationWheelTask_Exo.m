@@ -68,13 +68,16 @@ prepareEnvironment;
 part_num = input('Participant Number:','s');
 Filename = ['M:\Experiments\OrientWheel_Exo\Orient_Data\' part_num '_Orient_Exo.mat'];
 
-% Do you want to estimate threshold with a staircase procedure? 
+% Do you already have a color value or use default? 
 color_yn = input('Do you want to input the target color? [y or n]:','s');
 if strncmpi(color_yn,'y',1)
     % If not doing staircasing, input target color (0 black to 128 background grey)
     xtarget_gray = input('Target color [0 to 128]:','s');
     xtarget_gray = str2num(xtarget_gray); %convert input to number
 end 
+
+% Is eyetracking going to be used? 
+eyetrack_yn = input('Are you using the eye tracker? [y or n]:','s');
 
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 % /////////////////////////////////////////////////////////////////////////
@@ -85,22 +88,23 @@ prefs = getPreferences(); %get task variable info
 
 % /////////////////////////////////////////////////////////////////////////
 % /////////////////////////////////////////////////////////////////////////
-%% Instructions for experimenter
-% Screen('FillRect',window.onScreen,window.gray);
-% DrawFormattedText(window.onScreen,'Calibrated? Start EEG Recording and Press the SPACE BAR','center','center',[]);
-% Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
-% Screen('Flip',window.onScreen)
-% 
-% KbWait;
-% 
-% Screen('FillRect',window.onScreen,window.gray);
-% Screen('FillRect',window.onScreen,Vpixx2Vamp(199),prefs.trigger_size);
-% Screen('Flip',window.onScreen);
-% % system('C:\Users\user\Downloads\CoreSDK\CoreSDK\samples\Streams\Interaction_Streams_101\bin\Debug\Interaction_Streams_101.exe &');
-% system('M:\Experiments\micb_eyetrack\CoreSDK\CoreSDK\samples\Streams\Interaction_Streams_101\bin\Debug\Interaction_Streams_101.exe &');
-% 
-% 
-% WaitSecs(2);
+%% Instructions for experimenter to start eye tracking
+if strncmpi(eyetrack_yn,'y',1)
+    Screen('FillRect',window.onScreen,window.gray);
+    DrawFormattedText(window.onScreen,'Calibrated? Start EEG Recording and Press the SPACE BAR','center','center',[]);
+    Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
+    Screen('Flip',window.onScreen)
+
+    KbWait;
+
+    Screen('FillRect',window.onScreen,window.gray);
+    Screen('FillRect',window.onScreen,Vpixx2Vamp(199),prefs.trigger_size);
+    Screen('Flip',window.onScreen);
+    % system('C:\Users\user\Downloads\CoreSDK\CoreSDK\samples\Streams\Interaction_Streams_101\bin\Debug\Interaction_Streams_101.exe &');
+    system('M:\Experiments\micb_eyetrack\CoreSDK\CoreSDK\samples\Streams\Interaction_Streams_101\bin\Debug\Interaction_Streams_101.exe &');
+
+    WaitSecs(2);
+end
 
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 % /////////////////////////////////////////////////////////////////////////
@@ -126,12 +130,10 @@ for i = 1:max(prefs.setSizes)
 end
 
 % -------------------------------------------------------------------------
-% Center the target oval on the centre of the screen (for drawing
-% target stimuli)
+% Center the target oval & cues on the centre of the screen
 centeredRectresp = CenterRectOnPointd(prefs.baseCircleresp,window.centerX,window.centerY);
 centeredRectrespR = CenterRectOnPointd(prefs.baseCircleresp,window.centerXR,window.centerY); 
 centeredRectrespL = CenterRectOnPointd(prefs.baseCircleresp,window.centerXL,window.centerY);
-% -------------------------------------------------------------------------
 
 % -------------------------------------------------------------------------
 % Set colors of stimuli
@@ -144,9 +146,8 @@ if strncmpi(color_yn,'y',1)
 else
     prefs.targ_gray = 0; %default is black
 end
-% -------------------------------------------------------------------------
 
-% ------------------------------------------------------------------------ 
+% -------------------------------------------------------------------------
 % Create offscreen window with the texture of the mask
 maskwin = createMasktex(window,prefs); 
 
@@ -170,9 +171,9 @@ orientWheelLocations = orientwheelLocations(window,prefs);
 % -------------------------------------------------------------------------
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %% Set up the random mix of lags and target position and cue for each block
+
 %Now to find a lag you pick the next random index between 1:n_lags from i_lags
 %Then you find that index in all_lags, it tells you where to look in lags
-
 all_lags = [1:prefs.n_lags];
 if prefs.lags_per_block > 1
     for i_lag = 2:prefs.lags_per_block
@@ -253,7 +254,6 @@ trialOrient = cell(1,ntotaltrial);
         
         if present(trialIndex) == 1
             pause(window);
-            
             %Present Fixation
             Screen('FillRect', window.onScreen, window.gray);
             Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
@@ -262,13 +262,11 @@ trialOrient = cell(1,ntotaltrial);
             
         elseif present(trialIndex) == 0
             pause(window);
-            
             %Present Fixation
             Screen('FillRect', window.onScreen, window.gray);
             Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
             Screen('FillRect',window.onScreen, Vpixx2Vamp(11), prefs.trigger_size);
             t_fixate_onset = Screen('Flip', window.onScreen);
-            
         end
         
        
