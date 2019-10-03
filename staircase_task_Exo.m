@@ -39,7 +39,6 @@ function UpDn = staircase_task_Exo
 % Cue: 
 %     left:  2
 %     right: 3
-%     both:  9
 % Target:
 %     left:  20
 %     right: 30
@@ -98,10 +97,14 @@ centeredRectrespL = CenterRectOnPointd(prefs.baseCircleresp,window.centerXL,wind
 % Create offscreen window with the texture of the mask
 maskwin = createMasktex(window,prefs); 
 
-% ------------------------------------------------------------------------ 
+% ------------------------------------------------------------------------- 
+% Get coordinates of the place holder
+placeRect = createPlaceHolder(window,prefs);
+
+% ------------------------------------------------------------------------- 
 % Create offscreen window with the cues
-CueL = createCueL(window,prefs); %create offscreen window with cue
-CueR = createCueR(window,prefs); %create offscreen window with cue
+CueL = createCueL(window); %create offscreen window with cue
+CueR = createCueR(window); %create offscreen window with cue
   
 % -------------------------------------------------------------------------  
 % Put up instructions for staircasing task and wait for keypress.
@@ -216,7 +219,7 @@ UpDn.stopType = 'trials'; % Can be either ‘trials’ or ‘revels’
     % set-up to have the total # of staircase trials equal to two experiment blocks                  
 UpDn.nStairsRun = length(UpDn.sSizeUp); % # of blocks task will run 
 % want the total number of trials to be = 2*trials_per_block 
-UpDn.stopRule = round((2*prefs.trials_per_block) ./ UpDn.nStairsRun);
+UpDn.stopRule = round((3*prefs.trials_per_block) ./ UpDn.nStairsRun);
        
 
 % Max stimulus level to be used in staircase.
@@ -309,19 +312,41 @@ for i_sRun = 1:UpDn.nStairsRun
         pause(window); 
         Screen('FillRect', window.onScreen, window.gray);
         Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
+        Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
         Screen('FillRect',window.onScreen, Vpixx2Vamp(1), prefs.trigger_size);
-        t_fixate_onset = Screen('Flip', window.onScreen);
-% =========================================================================         
-        %% Interval
+        t_fixate_onset = Screen('Flip', window.onScreen);  
+% =========================================================================            
+        %% Cue
+        if position(trialIndex) == 0 
+            % present the Left cue
+            Screen('DrawTexture', window.onScreen, CueL, [], [], [], 0);
+            Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);%draw fixation
+            Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
+            Screen('FillRect',window.onScreen,Vpixx2Vamp(2),prefs.trigger_size);
+            tcue_onset = Screen('Flip',window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
+            prefs.fixation_time(trialIndex) = tcue_onset - t_fixate_onset;
+        else
+            % present the Right cue
+            Screen('DrawTexture', window.onScreen, CueR, [], [], [], 0);
+            Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);%draw fixation
+            Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
+            Screen('FillRect',window.onScreen,Vpixx2Vamp(3),prefs.trigger_size);
+            tcue_onset = Screen('Flip',window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
+            prefs.fixation_time(trialIndex) = tcue_onset - t_fixate_onset;
+        end
+        
+        % Post-cue interval
         Screen('FillOval', window.onScreen, window.gray, rects{nItems});
         Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255); %keep fixation till target
+        Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
         Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
-        tblank_onset = Screen('Flip', window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
+        tblank_onset = Screen('Flip',window.onScreen,tcue_onset + prefs.cue_length*refresh - slack);
 % =========================================================================       
         %% Entrainers
         if prefs.n_entrs > 0
             Screen('FillOval', window.onScreen, window.gray, rects{nItems});
             Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255); %keep fixation till target
+            Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
             Screen('FillRect',window.onScreen,Vpixx2Vamp(61),prefs.trigger_size);
             tentr_onset = Screen(window.onScreen, 'Flip', tblank_onset + prefs.preblank_length*refresh - slack);
             if prefs.n_entrs > 1
@@ -333,6 +358,7 @@ for i_sRun = 1:UpDn.nStairsRun
                         [rects{nItems}(1)-prefs.maskwidth, rects{nItems}(2)-prefs.maskwidth,rects{nItems}(3)+prefs.maskwidth,...
                         rects{nItems}(4)+prefs.maskwidth]);
                     Screen('FillOval', window.onScreen, window.gray, rects{nItems});
+                    Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
                     Screen('FillRect',window.onScreen,Vpixx2Vamp(60 + i_entr),prefs.trigger_size);
                     tentr_onset = Screen(window.onScreen, 'Flip', tblank_onset + prefs.entr_gap_length*refresh - slack);
                 end
@@ -341,7 +367,8 @@ for i_sRun = 1:UpDn.nStairsRun
 % =========================================================================         
             %% Lag
             Screen('FillOval', window.onScreen, window.gray, rects{nItems});
-%             Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255); %keep fixation till target
+            Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255); %keep fixation till target
+            Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
             Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
             tlag_onset = Screen(window.onScreen, 'Flip', tentr_onset + prefs.entr_length*refresh - slack);
 % =========================================================================          
@@ -355,37 +382,67 @@ for i_sRun = 1:UpDn.nStairsRun
             xCoords = [xadj -xadj2 xadj xadj2 xadj 0];
             yCoords = [yadj yadj2 yadj -yadj2 yadj 0];
             allCoords_targ{trialIndex} = [xCoords; yCoords];
-            % Draw the orientation lines, set it to the center of our screen and
-            % set good quality antialiasing
-            Screen('DrawLines', window.onScreen, allCoords_targ{trialIndex}, prefs.lineWidthPix, UpDn.xCurrent, [window.centerX window.centerY], 2);
-            % Draw the central circle to the screen
-            Screen('FillOval', window.onScreen, UpDn.xCurrent, centeredRectresp');
+% ========================================================================= 
+            %% Right Target
+            if position(trialIndex) == 1 %right target
+                % Draw the orientation lines, set it to the center of our screen and set good quality antialiasing
+                Screen('DrawLines', window.onScreen, allCoords_targ{trialIndex}, prefs.lineWidthPix, UpDn.xCurrent, [window.centerXR window.centerY], 2);
+                % Draw the central circle to the screen
+                Screen('FillOval', window.onScreen, UpDn.xCurrent, centeredRectrespR');
+                % Draw fixation
+                Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
+                Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
+                % Draw trigger
+                Screen('FillRect',window.onScreen,Vpixx2Vamp(20),prefs.trigger_size);
+
+% =========================================================================                 
+            else
+            %% Left Target
+                % Draw the orientation lines, set it to the center of our screen and set good quality antialiasing
+                Screen('DrawLines', window.onScreen, allCoords_targ{trialIndex}, prefs.lineWidthPix, UpDn.xCurrent, [window.centerXL window.centerY], 2);
+                % Draw the central circle to the screen
+                Screen('FillOval', window.onScreen, UpDn.xCurrent, centeredRectrespL');
+                % Draw fixation
+                Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
+                Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
+                % Draw trigger
+                Screen('FillRect',window.onScreen,Vpixx2Vamp(30),prefs.trigger_size);
+            
+            end       
 % =========================================================================              
             %% Post the stimulus
-            Screen('FillRect',window.onScreen,Vpixx2Vamp(20 + lag),prefs.trigger_size);
             ttarget_onset = Screen('Flip', window.onScreen, tlag_onset + prefs.lagISI(all_lags(trialIndex))*refresh - slack);
 % =========================================================================               
             %% Interval
             Screen('FillOval', window.onScreen, window.gray, rects{nItems});
+            %draw fixation
+            Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
+            Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
             Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
             tISI_onset = Screen('Flip', window.onScreen, ttarget_onset + prefs.targ_length*refresh - slack);        
 % =========================================================================               
             %% Mask
             Screen('DrawTexture', window.onScreen, maskwin, [], [], [], 0);
-            Screen('FillRect',window.onScreen,Vpixx2Vamp(90 + lag),prefs.trigger_size);
+            %draw fixation
+            Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
+            Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
+            Screen('FillRect',window.onScreen,Vpixx2Vamp(90),prefs.trigger_size);
             t_maskonset = Screen('Flip', window.onScreen, tISI_onset + prefs.maskISI*refresh - slack);
 % =========================================================================              
             %% Retention Interval
-            %not needed in this experiment so just a blank window
             Screen('FillOval', window.onScreen, window.gray, rects{nItems});
+            Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255); %Draw fixation
+            Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
             Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
             Screen('Flip', window.onScreen, t_maskonset + prefs.mask_length*refresh - slack);
-%             WaitSecs(retentionInterval);
+
+            % Retention interval
+            WaitSecs(retentionInterval);
 % ========================================================================= 
            %% Response            
            UpDn.presentedOrientDegrees(i_sRun,i_trial) = trialOrient{trialIndex}; 
            
-           Screen('FillRect',window.onScreen, Vpixx2Vamp(40 + lag), prefs.trigger_size);
+           Screen('FillRect',window.onScreen, Vpixx2Vamp(25), prefs.trigger_size);
            Screen('Flip', window.onScreen)
            
            t1 = GetSecs; %record for RT
@@ -401,18 +458,18 @@ for i_sRun = 1:UpDn.nStairsRun
             if response == 37
                 % Stores responses for all staircasing trials
                 UpDn.stairResp(i_sRun,i_trial) = 1; %detected
-                Screen('FillRect',window.onScreen, Vpixx2Vamp(150+lag), prefs.trigger_size);
+                Screen('FillRect',window.onScreen, Vpixx2Vamp(180), prefs.trigger_size);
                 res_trig = Screen('Flip',window.onScreen,[],0);
           % undetected (right arrow)
             elseif response == 39
                 % Stores responses for all staircasing trials
                 UpDn.stairResp(i_sRun,i_trial) = 0; %undetected
-                Screen('FillRect',window.onScreen, Vpixx2Vamp(160+lag), prefs.trigger_size);
+                Screen('FillRect',window.onScreen, Vpixx2Vamp(185), prefs.trigger_size);
                 res_trig = Screen('Flip',window.onScreen,[],0);
             else
                 % Stores responses for all staircasing trials
                 UpDn.stairResp(i_sRun,i_trial) = 9; %NULL
-                Screen('FillRect',window.onScreen, Vpixx2Vamp(190+lag), prefs.trigger_size);
+                Screen('FillRect',window.onScreen, Vpixx2Vamp(150), prefs.trigger_size);
                 res_trig = Screen('Flip',window.onScreen,[],0);
             end
            
@@ -695,36 +752,87 @@ KbWait %wait for subject to press button
 
 %Screen 2
 Screen('TextSize', window.onScreen, window.fontsize);
-Screen('DrawText', window.onScreen, 'A fixation dot will appear. Please remain focused on the white central dot during the entire task.',...
-    (window.centerX-600),(window.centerY+30), 255);
+Screen('DrawText', window.onScreen, 'A fixation dot will appear. Please remain focused on the white central dot during the ENTIRE task.',...
+    (window.centerX-600),(window.centerY+50), 255);
 Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255); %255 is text color (white)
 Screen('FillRect',window.onScreen, Vpixx2Vamp(0), prefs.trigger_size);
+%place holder
+placeRect = createPlaceHolder(window,prefs);
+Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect);
 Screen('Flip', window.onScreen);
-% GetClicks(window.onScreen);
 WaitSecs(1);
 KbWait %wait for subject to press button
 
 
+%Screen 2.2
+Screen('TextSize', window.onScreen, window.fontsize); 
+% CueL = createCueL(window,prefs); %create offscreen window with cue
+CueR = createCueR(window,prefs); %create offscreen window with cue
+Screen('DrawTexture', window.onScreen, CueR, [], [], [], 0);
+Screen('DrawText', window.onScreen, 'An arrow will then briefly appear.',...
+    (window.centerX-400),(window.centerY+50), 255);
+Screen('DrawText', window.onScreen, 'The arrow may be pointing right...',...
+    (window.centerX-400),(window.centerY+80), 255); %line every +30
+%place holder
+placeRect = createPlaceHolder(window,prefs);
+Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect);
+%put stimulus and text on screen
+Screen('FillRect',window.onScreen, Vpixx2Vamp(0), prefs.trigger_size);
+Screen('Flip', window.onScreen);
+WaitSecs(1);
+KbWait %wait for subject to press button
+
+
+%Screen 2.3
+Screen('TextSize', window.onScreen, window.fontsize); 
+CueL = createCueL(window,prefs); %create offscreen window with cue
+% CueR = createCueR(window,prefs); %create offscreen window with cue
+Screen('DrawTexture', window.onScreen, CueL, [], [], [], 0);
+Screen('DrawText', window.onScreen, 'Or, the arrow may be pointing left',...
+    (window.centerX-400),(window.centerY+50), 255);
+Screen('DrawText', window.onScreen, 'The arrow indicates the side a target stimulus will most likely appear.',...
+    (window.centerX-400),(window.centerY+80), 255); %line every +30
+Screen('DrawText', window.onScreen, 'While keeping your eyes focused on the center,',...
+    (window.centerX-400),(window.centerY+110), 255); %line every +30
+Screen('DrawText', window.onScreen, 'pay attention COVERTLY (without moving your eyes) to the circle on the side the arrow is pointing.',...
+    (window.centerX-400),(window.centerY+140), 255); %line every +30
+%place holder
+placeRect = createPlaceHolder(window,prefs);
+Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect);
+%put stimulus and text on screen
+Screen('FillRect',window.onScreen, Vpixx2Vamp(0), prefs.trigger_size);
+Screen('Flip', window.onScreen);
+WaitSecs(1);
+KbWait %wait for subject to press button
+
+
+
 %Screen 3
 Screen('TextSize', window.onScreen, window.fontsize);
-Screen('DrawText', window.onScreen, 'After a few moments the dot will disappear and a target pointing in a certain direction will quickly appear then disappear.',...
-    (window.centerX-750),(window.centerY+50), 255);
-Screen('DrawText', window.onScreen, 'Your task is to detect whether the target was there or not.',...
+Screen('DrawText', window.onScreen, 'The arrow will disappear and a target pointing in a certain direction will briefly appear inside the circle on the left OR right.',...
+    (window.centerX-600),(window.centerY+50), 255);
+Screen('DrawText', window.onScreen, 'Your task is to try to detect which direction the target is pointing.',...
     (window.centerX-400),(window.centerY+80), 255); %line every +30
-Screen('DrawText', window.onScreen, 'It might be difficult to see the target, but try your best.',...
+Screen('DrawText', window.onScreen, 'It might be difficult to see the target, but still try your best.',...
     (window.centerX-400),(window.centerY+110), 255); %line every +30
 %---draw target stimulus---
 xCoords = [15 1.73 15 -1.73 15 0];
 yCoords = [-25.98 1 -25.98 -1 -25.98 0];
 allCoords_targ = [xCoords; yCoords];
-Screen('DrawLines', window.onScreen, allCoords_targ, prefs.lineWidthPix, prefs.targ_gray, [window.centerX window.centerY], 2);
-centeredRectresp = CenterRectOnPointd([0,0,10,10], window.centerX, window.centerY); %location of center for oval
+%right target
+Screen('DrawLines', window.onScreen, allCoords_targ, prefs.lineWidthPix, prefs.targ_gray, [window.centerXR window.centerY], 2);
+centeredRectresp = CenterRectOnPointd([0,0,10,10], window.centerXR, window.centerY); %location of center for oval
 Screen('FillOval', window.onScreen, prefs.targ_gray, centeredRectresp');
-% Screen('FillOval', window.onScreen, [0,177.5,103.5417], [950,530,970,550]);
+%left target
+Screen('DrawLines', window.onScreen, allCoords_targ, prefs.lineWidthPix, prefs.targ_gray, [window.centerXL window.centerY], 2);
+centeredRectresp = CenterRectOnPointd([0,0,10,10], window.centerXL, window.centerY); %location of center for oval
+Screen('FillOval', window.onScreen, prefs.targ_gray, centeredRectresp');
+%place holder
+placeRect = createPlaceHolder(window,prefs);
+Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect);
 %put stimulus and text on screen
 Screen('FillRect',window.onScreen, Vpixx2Vamp(0), prefs.trigger_size);
 Screen('Flip', window.onScreen);
-% GetClicks(window.onScreen);
 WaitSecs(1);
 KbWait %wait for subject to press button
 
@@ -737,10 +845,11 @@ Screen('DrawText', window.onScreen, 'A star-like shape will then quickly appear 
     (window.centerX-400),(window.centerY+50), 255);
 Screen('DrawText', window.onScreen, 'Remember that you want to detect the pointing target, not the star.',...
     (window.centerX-400),(window.centerY+80), 255); %line every +30
-% Screen('FillOval', window.onScreen, window.gray, rects{1});
+%place holder
+placeRect = createPlaceHolder(window,prefs);
+Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect);
 Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
 Screen('Flip', window.onScreen);
-% GetClicks(window.onScreen);
 WaitSecs(1);
 KbWait %wait for subject to press button
 
@@ -760,7 +869,6 @@ Screen('DrawText', window.onScreen, 'If you are unsure whether the pointing targ
 Screen('DrawText', window.onScreen, 'please provide your best guess.',(window.centerX-880),(window.centerY+90), 255);
 Screen('FillRect',window.onScreen, Vpixx2Vamp(0), prefs.trigger_size);
 Screen('Flip', window.onScreen);
-% GetClicks(window.onScreen);
 WaitSecs(1);
 KbWait %wait for subject to press button
 
@@ -772,7 +880,6 @@ Screen('DrawText', window.onScreen, 'Press the RIGHT arrow if you do NOT see the
 Screen('DrawText', window.onScreen, 'Press any key when you are ready to start.',(window.centerX-400),(window.centerY+80), 255);
 Screen('FillRect',window.onScreen, Vpixx2Vamp(0), prefs.trigger_size);
 Screen('Flip', window.onScreen);
-% GetClicks(window.onScreen);
 WaitSecs(1);
 KbWait %wait for subject to press button
 
@@ -941,12 +1048,26 @@ Screen('FillOval', maskwin, prefs.mask_gray, centeredRect');
 
 end
 
+% -------------------------------------------------------------------------
+% #########################################################################
+% -------------------------------------------------------------------------
+%% *****Set-up locations of taret place holders*****
+function placeRect = createPlaceHolder(window,prefs)
+
+% Make a base Rect of diameter size
+baseRect = [0 0 prefs.placeRadius*2 prefs.placeRadius*2];
+
+% Center the location of rec
+placeRect(:,1) = CenterRectOnPointd(baseRect, window.centerXR, window.centerY);
+placeRect(:,2) = CenterRectOnPointd(baseRect, window.centerXL, window.centerY);
+
+end
 
 % -------------------------------------------------------------------------
 % #########################################################################
 % -------------------------------------------------------------------------
 %% *****Set-up off screen window with RIGHT cue*****
-function CueR = createCueR(window,prefs)
+function CueR = createCueR(window)
 
 % Open a new window off screen
 CueR = Screen('OpenOffscreenwindow', window.onScreen, window.gray); 
@@ -954,21 +1075,6 @@ CueR = Screen('OpenOffscreenwindow', window.onScreen, window.gray);
 % Set up alpha-blending for smooth (anti-aliased) lines in mask window
 Screen('BlendFunction', CueR, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 
-% Number of sides for our polygon
-numSides = 3;
-
-% Angles at which our polygon vertices endpoints will be. We start at zero
-% and then equally space vertex endpoints around the edge of a circle. The
-% polygon is then defined by sequentially joining these end points.
-anglesDeg = linspace(0, 360, numSides + 1);
-anglesRad = anglesDeg * (pi / 180);
-radius = prefs.cue_size;
-
-% X and Y coordinates of the points defining out polygon, centred on the
-% centre of the screen
-yPosVector = sin(anglesRad) .* radius + window.centerY;
-xPosVector = cos(anglesRad) .* radius + window.centerX;
-
 % Set the color of the triangle
 rectColor = window.black;
 
@@ -976,10 +1082,10 @@ rectColor = window.black;
 % more processing)
 isConvex = 1;
 
+right_arrow = [window.centerX+10 window.centerY-30; window.centerX-10 window.centerY-40; window.centerX-10 window.centerY-20];
+
 % Draw the rect to the screen
-Screen('FillPoly', CueR, rectColor, [xPosVector; yPosVector]', isConvex);
-% Screen('DrawDots', CueL, [window.centerX, window.centerY], prefs.fixationSize, 255);
-Screen('DrawLines', CueR, [-47 0 0 0; 0 0 0 0], prefs.cue_line, rectColor, [window.centerX, window.centerY], 0);
+Screen('FillPoly', CueR, rectColor, right_arrow, isConvex);
 
 end
 
@@ -987,29 +1093,13 @@ end
 % #########################################################################
 % -------------------------------------------------------------------------
 %% *****Set-up off screen window with LEFT cue*****
-function CueL = createCueL(window,prefs)
+function CueL = createCueL(window)
 
 % Open a new window off screen
 CueL = Screen('OpenOffscreenwindow', window.onScreen, window.gray); 
 
 % Set up alpha-blending for smooth (anti-aliased) lines in mask window
 Screen('BlendFunction', CueL, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
-
-% Number of sides for our polygon
-numSides = 3;
-
-% Angles at which our polygon vertices endpoints will be. We start at zero
-% and then equally space vertex endpoints around the edge of a circle. The
-% polygon is then defined by sequentially joining these end points.
-anglesDeg = linspace(0, 360, numSides + 1);
-anglesRad = anglesDeg * (pi / 180);
-radius = prefs.cue_size;
-
-% X and Y coordinates of the points defining out polygon, centred on the
-% centre of the screen (needed to flip)
-yPosVector = sin(anglesRad) .* radius + window.centerY;
-xPosVector = cos(anglesRad) .* radius + window.centerX;
-yPosVector2 = [yPosVector(2),yPosVector(1),yPosVector(4),yPosVector(3)];
 
 % Set the color of the triangle
 rectColor = window.black;
@@ -1018,10 +1108,10 @@ rectColor = window.black;
 % more processing)
 isConvex = 1;
 
-% Draw the rect to the screen
-Screen('FillPoly', CueL, rectColor, [xPosVector; yPosVector2]', isConvex);
-Screen('DrawLines', CueL, [0 57 0 0; 0 0 0 0], prefs.cue_line, rectColor, [window.centerX, window.centerY], 0);
+left_arrow = [window.centerX-10 window.centerY-30; window.centerX+10 window.centerY-40; window.centerX+10 window.centerY-20];   %create the attention cues
 
+% Draw the rect to the screen
+Screen('FillPoly', CueL, rectColor, left_arrow, isConvex);
 end
 
 % -------------------------------------------------------------------------
@@ -1088,7 +1178,6 @@ prefs.mask_length = 1; %refresh cycles of mask
 % Fixation ------
 % ---------------
 prefs.fixation_length = 84; %700ms
-prefs.preblank_length = 24; %200ms
 prefs.fixationSize = 4; %size of dot
 
 
@@ -1103,11 +1192,13 @@ prefs.orientWheelRadius = 35; %size of orientation wheel (not drawn)
 % Cue --------
 % ------------
 %in refresh cycles; each refresh is 1000msec / 120 Hz = 8.333 msec
-prefs.cue_length = 48; %400 ms
+prefs.cue_length = 120; %1000 ms
 prefs.cue_size = 20;
 prefs.cue_line = 5; %thickness of arrow line
 prefs.postcue_length = 24; %200 ms
 prefs.p_validity = 1; %proportion of informative cues (all should be informative)
+
+prefs.preblank_length = 24; %200ms
 
 
 % Other Variables
@@ -1116,6 +1207,8 @@ prefs.p_catchtrials = 0; %what proportion of trials will be catch trials
 prefs.tilesize = 5; % how big the coloured squares are
 
 prefs.timeLimit = 5; %how long wait for yes/no response (s)
+
+prefs.placeRadius = prefs.orientWheelRadius + 5; %size of target place holder
 
 
 

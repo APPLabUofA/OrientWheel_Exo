@@ -151,14 +151,15 @@ end
 % Create offscreen window with the texture of the mask
 maskwin = createMasktex(window,prefs); 
 
+% ------------------------------------------------------------------------- 
 % Get coordinates of the place holder
 placeRect = createPlaceHolder(window,prefs);
 
-% ------------------------------------------------------------------------ 
+% ------------------------------------------------------------------------- 
 % Create offscreen window with the cues
-CueL = createCueL(window,prefs); %create offscreen window with cue
-CueR = createCueR(window,prefs); %create offscreen window with cue
-CueN = createCueN(window,prefs); %create offscreen window with non-informative cue
+CueL = createCueL(window); %create offscreen window with cue
+CueR = createCueR(window); %create offscreen window with cue
+CueN = createCueN(window); %create offscreen window with non-informative cue
 
 % -------------------------------------------------------------------------    
 % Put up instructions and wait for keypress.
@@ -260,7 +261,7 @@ trialOrient = cell(1,ntotaltrial);
             %Present Fixation
             Screen('FillRect', window.onScreen, window.gray);
             Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
-            Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect);
+            Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
             Screen('FillRect',window.onScreen, Vpixx2Vamp(1), prefs.trigger_size);
             t_fixate_onset = Screen('Flip', window.onScreen);
             
@@ -406,10 +407,6 @@ trialOrient = cell(1,ntotaltrial);
                 Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
                 % Draw trigger
                 Screen('FillRect',window.onScreen,Vpixx2Vamp(20),prefs.trigger_size);
-
-                % Post the stimulus
-                ttarget_onset = Screen('Flip',window.onScreen,tlag_onset + prefs.lagISI(all_lags(trialIndex))*refresh - slack);
-
 % =========================================================================                 
             else
             %% Left Target
@@ -422,10 +419,6 @@ trialOrient = cell(1,ntotaltrial);
                 Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
                 % Draw trigger
                 Screen('FillRect',window.onScreen,Vpixx2Vamp(30),prefs.trigger_size);
-
-                % Post the stimulus
-                ttarget_onset = Screen('Flip', window.onScreen,tlag_onset + prefs.lagISI(all_lags(trialIndex))*refresh - slack);
-            
             end       
 % =========================================================================            
         else
@@ -435,10 +428,11 @@ trialOrient = cell(1,ntotaltrial);
             Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);
             Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
             % Draw trigger
-            Screen('FillRect',window.onScreen,Vpixx2Vamp(40),prefs.trigger_size);
-            ttarget_onset = Screen('Flip', window.onScreen,tlag_onset + prefs.lagISI(all_lags(trialIndex))*refresh - slack);
-            
+            Screen('FillRect',window.onScreen,Vpixx2Vamp(40),prefs.trigger_size);            
         end
+% =========================================================================          
+        % Post the stimulus
+        ttarget_onset = Screen('Flip', window.onScreen,tlag_onset + prefs.lagISI(all_lags(trialIndex))*refresh - slack);
 % =========================================================================  
         %% blank Inter stimulus interval
         Screen('FillOval', window.onScreen, window.gray, rects{nItems});
@@ -1091,7 +1085,7 @@ end
 % #########################################################################
 % -------------------------------------------------------------------------
 %% *****Set-up off screen window with RIGHT cue*****
-function CueR = createCueR(window,prefs)
+function CueR = createCueR(window)
 
 % Open a new window off screen
 CueR = Screen('OpenOffscreenwindow', window.onScreen, window.gray); 
@@ -1099,28 +1093,12 @@ CueR = Screen('OpenOffscreenwindow', window.onScreen, window.gray);
 % Set up alpha-blending for smooth (anti-aliased) lines in mask window
 Screen('BlendFunction', CueR, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
 
-% Number of sides for our polygon
-numSides = 3;
-
-% Angles at which our polygon vertices endpoints will be. We start at zero
-% and then equally space vertex endpoints around the edge of a circle. The
-% polygon is then defined by sequentially joining these end points.
-anglesDeg = linspace(0, 360, numSides + 1);
-anglesRad = anglesDeg * (pi / 180);
-radius = prefs.cue_size;
-
-% X and Y coordinates of the points defining out polygon, centred on the
-% centre of the screen
-yPosVector = sin(anglesRad) .* radius + window.centerY;
-xPosVector = cos(anglesRad) .* radius + window.centerX;
-
 % Set the color of the triangle
 rectColor = window.black;
 
 % Cue to tell PTB that the polygon is convex (concave polygons require much
 % more processing)
 isConvex = 1;
-
 
 right_arrow = [window.centerX+10 window.centerY-30; window.centerX-10 window.centerY-40; window.centerX-10 window.centerY-20];
 
@@ -1135,29 +1113,13 @@ end
 % #########################################################################
 % -------------------------------------------------------------------------
 %% *****Set-up off screen window with LEFT cue*****
-function CueL = createCueL(window,prefs)
+function CueL = createCueL(window)
 
 % Open a new window off screen
 CueL = Screen('OpenOffscreenwindow', window.onScreen, window.gray); 
 
 % Set up alpha-blending for smooth (anti-aliased) lines in mask window
 Screen('BlendFunction', CueL, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
-
-% Number of sides for our polygon
-numSides = 3;
-
-% Angles at which our polygon vertices endpoints will be. We start at zero
-% and then equally space vertex endpoints around the edge of a circle. The
-% polygon is then defined by sequentially joining these end points.
-anglesDeg = linspace(0, 360, numSides + 1);
-anglesRad = anglesDeg * (pi / 180);
-radius = prefs.cue_size;
-
-% X and Y coordinates of the points defining out polygon, centred on the
-% centre of the screen (needed to flip)
-yPosVector = sin(anglesRad) .* radius + window.centerY;
-xPosVector = cos(anglesRad) .* radius + window.centerX;
-yPosVector2 = [yPosVector(2),yPosVector(1),yPosVector(4),yPosVector(3)];
 
 % Set the color of the triangle
 rectColor = window.black;
@@ -1180,29 +1142,13 @@ end
 % #########################################################################
 % -------------------------------------------------------------------------
 %% *****Set-up off screen window with NON-INFORMATIVE cue*****
-function CueN = createCueN(window,prefs)
+function CueN = createCueN(window)
 
 % Open a new window off screen
 CueN = Screen('OpenOffscreenwindow', window.onScreen, window.gray); 
 
 % Set up alpha-blending for smooth (anti-aliased) lines in mask window
 Screen('BlendFunction', CueN, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
-
-% Number of sides for our polygon
-numSides = 3;
-
-% Angles at which our polygon vertices endpoints will be. We start at zero
-% and then equally space vertex endpoints around the edge of a circle. The
-% polygon is then defined by sequentially joining these end points.
-anglesDeg = linspace(0, 360, numSides + 1);
-anglesRad = anglesDeg * (pi / 180);
-radius = prefs.cue_size;
-
-% X and Y coordinates of the points defining out polygon, centred on the
-% centre of the screen (needed to flip)
-yPosVector = sin(anglesRad) .* radius + window.centerY;
-xPosVector = cos(anglesRad) .* radius + window.centerX;
-yPosVector2 = [yPosVector(2),yPosVector(1),yPosVector(4),yPosVector(3)];
 
 % Set the color of the triangle
 rectColor = window.black;
@@ -1306,6 +1252,7 @@ prefs.cue_size = 20;
 prefs.cue_line = 5; %thickness of arrow line
 prefs.postcue_length = 24; %200 ms
 prefs.p_validity = 0.67; %proportion of informative cues (33 non-informative cues)
+
 prefs.preblank_length = 24; %200ms
 
 
