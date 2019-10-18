@@ -40,8 +40,8 @@ function UpDn = staircase_task_Exo
 %     left:  2
 %     right: 3
 % Target:
-%     left:  20
-%     right: 30
+%     left:  30
+%     right: 20
 % Mask: 90
 % Response screen Y/N: 25  
 %   Response Yes: 180 
@@ -121,6 +121,8 @@ orientWheelLocations = orientwheelLocations(window,prefs);
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %% Set up the random mix of lags and target position and cue for each block
 
+ntotaltrial = prefs.nTrials;
+
 % Set up the random mix of lags for each block
 all_lags = [1:prefs.n_lags];
 if prefs.lags_per_block > 1
@@ -194,18 +196,19 @@ UpDn.sDown = 2; % Number of consecutive detected responses after which stimulus 
 % ``` Step Sizes ```
 % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 % Size of decrease in stimulus difficulty (-sSizeUp to reduce RGB value = darker target color).
-UpDn.sSizeUp = [2 6 4]; %aiming for .55-.60
+UpDn.sSizeUp = [3 4 6]; %aiming for .55-.60: [2 6 4]
 % Size of increase in stimulus difficulty (+sSizeDown to increase RGB value = lighter target color).
-UpDn.sSizeDown   = [4 11 9]; %aiming for .55-.60
+UpDn.sSizeDown   = [3 5 5]; %aiming for .55-.60: [4 11 9]
 % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 % ---see García-Pérez (1998) about the ratio of sSizeDown/sSizeUp when using fixed step sizes--- 
 % Use formula to determine step sizes to get targets proportion correct 
-%  targetP = (UpDn.sSizeUp(1)./(UpDn.sSizeUp(1)+UpDn.sSizeDown(1))).^(UpDn.sUp./UpDn.sDown)
+%  ii=1;
+%  targetP = (UpDn.sSizeUp(ii)./(UpDn.sSizeUp(ii)+UpDn.sSizeDown(ii))).^(UpDn.sUp./UpDn.sDown)
 % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 % *** Desired Proportion of Targets Detected ***
 % UpDn.propDetect = .50;
-UpDn.propDetect = .60;
+UpDn.propDetect = .70;
 UpDn.currProp = 0; % starting value for i_sRun = 1
 
 
@@ -219,7 +222,7 @@ UpDn.stopType = 'trials'; % Can be either ‘trials’ or ‘revels’
     % set-up to have the total # of staircase trials equal to two experiment blocks                  
 UpDn.nStairsRun = length(UpDn.sSizeUp); % # of blocks task will run 
 % want the total number of trials to be = 2*trials_per_block 
-UpDn.stopRule = round((3*prefs.trials_per_block) ./ UpDn.nStairsRun);
+UpDn.stopRule = round((2*prefs.trials_per_block) ./ UpDn.nStairsRun);
        
 
 % Max stimulus level to be used in staircase.
@@ -277,6 +280,8 @@ for i_sRun = 1:UpDn.nStairsRun
 % /////////////////////////////////////////////////////////////////////////
 % +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+
 %     for i_trial = 1:UpDn.stopRule
     while ~UpDn.stop  %loop until stop criteria is met     
         
@@ -315,7 +320,14 @@ for i_sRun = 1:UpDn.nStairsRun
         Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
         Screen('FillRect',window.onScreen, Vpixx2Vamp(1), prefs.trigger_size);
         t_fixate_onset = Screen('Flip', window.onScreen);  
-% =========================================================================            
+% ========================================================================= 
+        %% Interval (refresh screen)
+        Screen('FillOval', window.onScreen, window.gray, rects{nItems});
+        Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255); %keep fixation till target
+        Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
+        Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
+        Screen('Flip', window.onScreen);
+% =========================================================================         
         %% Cue
         if position(trialIndex) == 0 
             % present the Left cue
@@ -767,7 +779,7 @@ KbWait %wait for subject to press button
 %Screen 2.2
 Screen('TextSize', window.onScreen, window.fontsize); 
 % CueL = createCueL(window,prefs); %create offscreen window with cue
-CueR = createCueR(window,prefs); %create offscreen window with cue
+CueR = createCueR(window); %create offscreen window with cue
 Screen('DrawTexture', window.onScreen, CueR, [], [], [], 0);
 Screen('DrawText', window.onScreen, 'An arrow will then briefly appear.',...
     (window.centerX-400),(window.centerY+50), 255);
@@ -785,7 +797,7 @@ KbWait %wait for subject to press button
 
 %Screen 2.3
 Screen('TextSize', window.onScreen, window.fontsize); 
-CueL = createCueL(window,prefs); %create offscreen window with cue
+CueL = createCueL(window); %create offscreen window with cue
 % CueR = createCueR(window,prefs); %create offscreen window with cue
 Screen('DrawTexture', window.onScreen, CueL, [], [], [], 0);
 Screen('DrawText', window.onScreen, 'Or, the arrow may be pointing left',...
@@ -1225,7 +1237,7 @@ prefs.placeRadius = prefs.orientWheelRadius + 5; %size of target place holder
 prefs.degslocs = [15:15:360]; 
 
 % Number of blocks
-prefs.nBlocks = 8;
+prefs.nBlocks = 3;
 % prefs.nBlocks = 2;
 
 % Trials per block (multiple of # of target orientations)
@@ -1236,7 +1248,7 @@ prefs.nTrials = prefs.nBlocks*prefs.trials_per_block;
 % prefs.nTrials = 12; %for testing
 
 % Random order of orientations on each trial
-prefs.selectorientTrial = randi(length(prefs.degslocs),[(prefs.nTrials+20),1]);
+prefs.selectorientTrial = randi(length(prefs.degslocs),[(prefs.nTrials),1]);
 
 
 

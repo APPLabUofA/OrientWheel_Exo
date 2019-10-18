@@ -19,14 +19,14 @@
 % 
 % -- Targets Present --
 % Trial start (fixation): 1
-% Entrainers: 61-68
+% Entrainers: 61-68*
 % Cue: 
 %     left:  2
 %     right: 3
 %     both:  9
 % Target:
-%     left:  20
-%     right: 30
+%     left:  30
+%     right: 20
 % Mask: 90
 % Response screen target: 5  
 %   Response target: 80 
@@ -285,8 +285,6 @@ trialOrient = cell(1,ntotaltrial);
                 Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);%draw fixation
                 Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
                 Screen('FillRect',window.onScreen,Vpixx2Vamp(9),prefs.trigger_size);
-                tcue_onset = Screen('Flip',window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
-                prefs.fixation_time(trialIndex) = tcue_onset - t_fixate_onset;
                 
             else %informative cue
                 if position(trialIndex) == 0 
@@ -295,20 +293,16 @@ trialOrient = cell(1,ntotaltrial);
                     Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);%draw fixation
                     Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
                     Screen('FillRect',window.onScreen,Vpixx2Vamp(2),prefs.trigger_size);
-                    tcue_onset = Screen('Flip',window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
-                    prefs.fixation_time(trialIndex) = tcue_onset - t_fixate_onset;
-                else
+                elseif position(trialIndex) == 1
                     % present the Right cue
                     Screen('DrawTexture', window.onScreen, CueR, [], [], [], 0);
                     Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);%draw fixation
                     Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
                     Screen('FillRect',window.onScreen,Vpixx2Vamp(3),prefs.trigger_size);
-                    tcue_onset = Screen('Flip',window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
-                    prefs.fixation_time(trialIndex) = tcue_onset - t_fixate_onset;
                 end
             end
             
-        else %no target
+        elseif present(trialIndex) == 0 %no target
             
             if valid(trialIndex) == 0 %non-informative cue
                 % present the non-informative cue
@@ -316,8 +310,6 @@ trialOrient = cell(1,ntotaltrial);
                 Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);%draw fixation
                 Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
                 Screen('FillRect',window.onScreen,Vpixx2Vamp(19),prefs.trigger_size);
-                tcue_onset = Screen('Flip',window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
-                prefs.fixation_time(trialIndex) = tcue_onset - t_fixate_onset;
                 
             else %informative cue
                 if position(trialIndex) == 0 
@@ -326,20 +318,20 @@ trialOrient = cell(1,ntotaltrial);
                     Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);%draw fixation
                     Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
                     Screen('FillRect',window.onScreen,Vpixx2Vamp(12),prefs.trigger_size);
-                    tcue_onset = Screen('Flip',window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
-                    prefs.fixation_time(trialIndex) = tcue_onset - t_fixate_onset;
-                else
+                elseif position(trialIndex) == 1
                     % present the Right cue
                     Screen('DrawTexture', window.onScreen, CueR, [], [], [], 0);
                     Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255);%draw fixation
                     Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect); %placeholder
                     Screen('FillRect',window.onScreen,Vpixx2Vamp(13),prefs.trigger_size);
-                    tcue_onset = Screen('Flip',window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
-                    prefs.fixation_time(trialIndex) = tcue_onset - t_fixate_onset;
                 end
             end
         end
-                    
+        tcue_onset = Screen('Flip',window.onScreen,t_fixate_onset + prefs.fixation_length*refresh - slack);
+        prefs.fixation_time(trialIndex) = tcue_onset - t_fixate_onset;
+                  
+        
+        
         % Post-cue interval
         Screen('FillOval', window.onScreen, window.gray, rects{nItems});
         Screen('DrawDots', window.onScreen, [window.centerX, window.centerY], prefs.fixationSize, 255); %keep fixation till target
@@ -487,9 +479,14 @@ trialOrient = cell(1,ntotaltrial);
         end
         
         %------------------------------------------------------------------
-        % Wait for click.
-        SetMouse(window.centerX, window.centerY); %mouse at center
+        % Set-up response stimuli.
+        %randomize starting location of lines if mouse is not moved 
+        startdeg = prefs.degslocs(randi(length(prefs.degslocs),1));
+        centeredRectmouse = CenterRectOnPointd([prefs.orientwheel(1,startdeg),prefs.orientwheel(2,startdeg),...
+            20,20],window.centerX,window.centerY);
+        SetMouse(centeredRectmouse(1),centeredRectmouse(2)); %mouse start location
         ShowCursor('Arrow');
+        clear centeredRectmouse
         %------------------------------------------------------------------
         % If mouse button is already down, wait for release.
         GetMouse(window.onScreen);
@@ -499,8 +496,6 @@ trialOrient = cell(1,ntotaltrial);
         end
         %------------------------------------------------------------------
         everMovedFromCenter = false;
-        %randomize starting location of lines if mouse is not moved 
-        startdeg = prefs.degslocs(randi(length(prefs.degslocs),1));
         while ~any(buttons) % keep track of mouse location if moved
             
             [x,y,buttons] = GetMouse(window.onScreen);
@@ -535,9 +530,9 @@ trialOrient = cell(1,ntotaltrial);
 
             % Draw the orient lines, set it to the center of our screen and
             % set good quality antialiasing
-            Screen('DrawLines', window.onScreen, allCoords, prefs.lineWidthPix, prefs.targ_gray, [window.centerX window.centerY], 2);
+            Screen('DrawLines', window.onScreen, allCoords, prefs.lineWidthPix, prefs.mask_gray, [window.centerX window.centerY], 2);
             % Draw the circle part of the stimulus to the screen
-            Screen('FillOval', window.onScreen, prefs.targ_gray, centeredRectresp');
+            Screen('FillOval', window.onScreen, prefs.mask_gray, centeredRectresp');
             
             Screen('FillRect',window.onScreen,Vpixx2Vamp(0),prefs.trigger_size);
             Screen('Flip', window.onScreen);
@@ -753,7 +748,7 @@ GetClicks(window.onScreen);
 %Screen 2.2
 Screen('TextSize', window.onScreen, window.fontsize); 
 % CueL = createCueL(window,prefs); %create offscreen window with cue
-CueR = createCueR(window,prefs); %create offscreen window with cue
+CueR = createCueR(window); %create offscreen window with cue
 Screen('DrawTexture', window.onScreen, CueR, [], [], [], 0);
 Screen('DrawText', window.onScreen, 'An arrow will then briefly appear.',...
     (window.centerX-400),(window.centerY+50), 255);
@@ -769,7 +764,7 @@ GetClicks(window.onScreen);
 
 %Screen 2.3
 Screen('TextSize', window.onScreen, window.fontsize); 
-CueL = createCueL(window,prefs); %create offscreen window with cue
+CueL = createCueL(window); %create offscreen window with cue
 % CueR = createCueR(window,prefs); %create offscreen window with cue
 Screen('DrawTexture', window.onScreen, CueL, [], [], [], 0);
 Screen('DrawText', window.onScreen, 'Or, the arrow may be pointing left',...
@@ -791,7 +786,7 @@ GetClicks(window.onScreen);
 
 %Screen 2.4
 Screen('TextSize', window.onScreen, window.fontsize); 
-CueN = createCueN(window,prefs); %create offscreen window with non-informative cue
+CueN = createCueN(window); %create offscreen window with non-informative cue
 Screen('DrawTexture', window.onScreen, CueN, [], [], [], 0);
 Screen('DrawText', window.onScreen, 'Sometimes the arrow will be pointing both left and right.',...
     (window.centerX-400),(window.centerY+50), 255);
@@ -819,13 +814,13 @@ xCoords = [15 1.73 15 -1.73 15 0];
 yCoords = [-25.98 1 -25.98 -1 -25.98 0];
 allCoords_targ = [xCoords; yCoords];
 %right target
-Screen('DrawLines', window.onScreen, allCoords_targ, prefs.lineWidthPix, prefs.targ_gray, [window.centerXR window.centerY], 2);
+Screen('DrawLines', window.onScreen, allCoords_targ, prefs.lineWidthPix, prefs.mask_gray, [window.centerXR window.centerY], 2);
 centeredRectresp = CenterRectOnPointd([0,0,10,10], window.centerXR, window.centerY); %location of center for oval
-Screen('FillOval', window.onScreen, prefs.targ_gray, centeredRectresp');
+Screen('FillOval', window.onScreen, prefs.mask_gray, centeredRectresp');
 %left target
-Screen('DrawLines', window.onScreen, allCoords_targ, prefs.lineWidthPix, prefs.targ_gray, [window.centerXL window.centerY], 2);
+Screen('DrawLines', window.onScreen, allCoords_targ, prefs.lineWidthPix, prefs.mask_gray, [window.centerXL window.centerY], 2);
 centeredRectresp = CenterRectOnPointd([0,0,10,10], window.centerXL, window.centerY); %location of center for oval
-Screen('FillOval', window.onScreen, prefs.targ_gray, centeredRectresp');
+Screen('FillOval', window.onScreen, prefs.mask_gray, centeredRectresp');
 %place holder
 placeRect = createPlaceHolder(window,prefs);
 Screen('FrameOval', window.onScreen, prefs.mask_gray, placeRect);
@@ -857,9 +852,9 @@ GetClicks(window.onScreen);
 xCoords = [-21.21 -1.41 -21.21 1.41 -21.21 0];
 yCoords = [21.21 -1.41 21.21 1.41 21.21 0];
 allCoords_targ = [xCoords; yCoords];
-Screen('DrawLines', window.onScreen, allCoords_targ, prefs.lineWidthPix, prefs.targ_gray, [window.centerX window.centerY], 2);
+Screen('DrawLines', window.onScreen, allCoords_targ, prefs.lineWidthPix, prefs.mask_gray, [window.centerX window.centerY], 2);
 centeredRectresp = CenterRectOnPointd([0,0,10,10], window.centerX, window.centerY); 
-Screen('FillOval', window.onScreen, prefs.targ_gray, centeredRectresp');
+Screen('FillOval', window.onScreen, prefs.mask_gray, centeredRectresp');
 Screen('TextSize', window.onScreen, window.fontsize);
 Screen('DrawText', window.onScreen, 'Another target will then appear on screen.',(window.centerX-880),(window.centerY-50), 255);
 Screen('DrawText', window.onScreen, 'Using the mouse, move the new target until',(window.centerX-880),(window.centerY), 255);
